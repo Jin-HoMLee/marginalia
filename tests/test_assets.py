@@ -6,7 +6,7 @@ ASSETS = Path(__file__).resolve().parents[1] / "server" / "assets"
 
 def test_theme_css_has_core_classes():
     css = (ASSETS / "theme.css").read_text(encoding="utf-8")
-    for token in [".wrap", ".mg-anno", ".mg-popup", ".mg-reply", ".mg-bar"]:
+    for token in [".wrap", ".mg-anno", ".mg-popup", ".mg-reply", ".mg-bar", ".mg-comment", ".mg-opt"]:
         assert token in css, f"missing {token} in theme.css"
 
 
@@ -21,3 +21,8 @@ def test_annotate_js_has_contract_hooks():
     assert "mg-done" in js
     # re-annotation of reply-card contents (threading)
     assert "makeClickable" in js
+    # UX features: user comment cards, draft persistence, clickable answer options
+    assert "renderComment" in js
+    assert "drafts" in js
+    assert "#reply:" in js
+    assert "mg-opt" in js

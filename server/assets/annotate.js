@@ -3,6 +3,7 @@
   var seenReplies = 0;        // how many reply records we've already rendered
   var replyCidCounter = 0;    // unique ids for elements inside reply cards
   var popup = null;
+  var drafts = {};            // cid -> unsent draft text, so an accidental close never loses typing
 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function (c) {
@@ -28,7 +29,12 @@
   }
 
   function closePopup() {
-    if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
+    if (popup && popup.parentNode) {
+      var ta = popup.querySelector(".mg-popup-ta");
+      var cid = popup.getAttribute("data-cid");
+      if (ta && cid && ta.value.trim()) drafts[cid] = ta.value;  // preserve unsent draft
+      popup.parentNode.removeChild(popup);
+    }
     popup = null;
   }
 
@@ -47,6 +53,7 @@
     var label = el.textContent.trim().slice(0, 140);
     popup = document.createElement("div");
     popup.className = "mg-popup";
+    popup.setAttribute("data-cid", cid);
     popup.innerHTML =
       '<div class="mg-popup-label">' + escapeHtml(label) + "</div>" +
       '<textarea class="mg-popup-ta" rows="3" placeholder="Comment on this…"></textarea>' +
@@ -56,6 +63,7 @@
     document.body.appendChild(popup);
     positionPopup(popup, el);
     var ta = popup.querySelector(".mg-popup-ta");
+    ta.value = drafts[cid] || "";   // restore any preserved draft
     ta.focus();
     popup.querySelector(".mg-cancel").onclick = closePopup;
     popup.querySelector(".mg-send").onclick = function () { send(el, cid, label, ta.value); };
@@ -65,18 +73,27 @@
     });
   }
 
+  // POST a comment to the server and render the user's "You" card under anchorEl.
+  // Returns the fetch promise so callers can handle success/failure.
+  function submitComment(element_id, label, text, anchorEl) {
+    return fetch("/comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ element_id: element_id, label: label, comment: text })
+    }).then(function () {
+      if (anchorEl) renderComment(anchorEl, text);
+      toast("Comment sent → Claude");
+    });
+  }
+
   function send(el, cid, label, text) {
     text = (text || "").trim();
     if (!text) { closePopup(); return; }
-    fetch("/comment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ element_id: cid, label: label, comment: text })
-    }).then(function () {
+    submitComment(cid, label, text, el).then(function () {
+      delete drafts[cid];                       // sent successfully -> drop the draft
+      if (popup && popup.parentNode) { popup.parentNode.removeChild(popup); popup = null; }
       el.classList.add("mg-has");
-      toast("Comment sent → Claude");
-      closePopup();
-    }).catch(function () { toast("Send failed — your text is kept"); });
+    }).catch(function () { toast("Send failed — your text is kept"); });  // popup stays open
   }
 
   function toast(msg) {
@@ -91,7 +108,29 @@
     }, 1600);
   }
 
-  // Render a reply card under the element it answers, and make the card annotatable.
+  // Insert `card` into the thread block under anchorEl, AFTER any comment/reply
+  // cards already attached, so a thread reads top-to-bottom in chronological order.
+  function insertIntoThread(anchorEl, card) {
+    var ref = anchorEl;
+    while (ref.nextSibling && ref.nextSibling.nodeType === 1 &&
+           (ref.nextSibling.classList.contains("mg-reply") ||
+            ref.nextSibling.classList.contains("mg-comment"))) {
+      ref = ref.nextSibling;
+    }
+    if (ref.parentNode) ref.parentNode.insertBefore(card, ref.nextSibling);
+  }
+
+  // Render the user's own comment as a card so the thread is legible.
+  function renderComment(anchorEl, text) {
+    var card = document.createElement("div");
+    card.className = "mg-comment";
+    card.innerHTML = '<span class="mg-comment-tag">You</span>' +
+                     '<span class="mg-comment-body">' + escapeHtml(text) + "</span>";
+    insertIntoThread(anchorEl, card);
+  }
+
+  // Render a reply card under the element it answers, make it annotatable, and
+  // wire any [label](#reply:answer) links as clickable answer options.
   function renderReply(rec) {
     var anchor = document.querySelector('[data-cid="' + CSS.escape(rec.element_id) + '"]');
     var card = document.createElement("details");
@@ -112,8 +151,28 @@
     summary.textContent = "Claude replied";
     card.appendChild(summary);
     card.appendChild(body);
+
+    // Clickable answer options: [Label](#reply:Answer) -> a button that sends "Answer".
+    var cardLabel = body.textContent.trim().slice(0, 140);
+    var opts = body.querySelectorAll('a[href^="#reply:"]');
+    for (var j = 0; j < opts.length; j++) {
+      (function (a) {
+        var answer = decodeURIComponent(a.getAttribute("href").slice("#reply:".length));
+        a.classList.add("mg-opt");
+        a.setAttribute("role", "button");
+        a.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (a.classList.contains("mg-opt-chosen")) return;
+          a.classList.add("mg-opt-chosen");
+          submitComment(rec.element_id, cardLabel, answer, card)
+            .catch(function () { toast("Send failed"); a.classList.remove("mg-opt-chosen"); });
+        });
+      })(opts[j]);
+    }
+
     if (anchor && anchor.parentNode) {
-      anchor.parentNode.insertBefore(card, anchor.nextSibling);
+      insertIntoThread(anchor, card);
     } else {
       document.getElementById("mg-doc").appendChild(card);
     }
