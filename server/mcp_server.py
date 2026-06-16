@@ -91,6 +91,7 @@ def _do_end(export=True, path=""):
         text = export_markdown(store)
         out = Path(path) if path else (Path.cwd() / "marginalia-thread.md")
         try:
+            out.parent.mkdir(parents=True, exist_ok=True)  # ensure the target dir exists
             out.write_text(text, encoding="utf-8")
             saved = str(out)
         except OSError as exc:

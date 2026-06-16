@@ -34,11 +34,24 @@ If the `marginalia` MCP tools (`start_thread`, `await_comment`, `post_reply`,
    that element. Reply to the `element_id` you received (or any element id).
 4. Loop back to `await_comment()`.
 5. **`end_thread(export=true, path="<abs path>")`** — on Done, closes the server
-   and writes a Markdown transcript of the thread (returns `{saved_path}`). Pass
-   an **absolute** `path` (e.g. next to the source doc): Claude Code's working
-   directory varies across turns, so the default `cwd/marginalia-thread.md` can
-   land somewhere unexpected. The returned `{saved_path}` always reports where it
-   actually wrote.
+   and writes a Markdown transcript of the thread (returns `{saved_path}`). Always
+   pass an **absolute** `path` — Claude Code's working directory varies across
+   turns, so the bare `cwd/marginalia-thread.md` default is unreliable.
+
+   **Default path convention (local, out of git):**
+   ```
+   ~/.claude/skills/marginalia/threads/<project-slug>/<thread-slug>.thread.md
+   ```
+   - `<project-slug>` = the **same slug Claude Code uses for project memory** — i.e.
+     the folder name under `~/.claude/projects/` for the current project (the
+     absolute project path with every `/` **and** `.` replaced by `-`; case
+     preserved). E.g. `/Users/jin-holee/dev/GitHub/Jin-HoMLee/cerebrum` →
+     `-Users-jin-holee-dev-GitHub-Jin-HoMLee-cerebrum`. The robust way to get it:
+     read the matching directory name under `~/.claude/projects/`.
+   - `<thread-slug>` = a short kebab-case name for the thread (from the doc title).
+   - These live **outside git on purpose** (the skill repo `.gitignore`s `threads/`).
+     `end_thread` creates the directory if missing. If you ever want a thread
+     version-controlled instead, pass an in-repo `path` explicitly.
 
 ## Rules
 
