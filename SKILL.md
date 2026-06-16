@@ -33,8 +33,12 @@ If the `marginalia` MCP tools (`start_thread`, `await_comment`, `post_reply`,
 3. **`post_reply(element_id, markdown)`** — your reply renders as a card under
    that element. Reply to the `element_id` you received (or any element id).
 4. Loop back to `await_comment()`.
-5. **`end_thread(export=true)`** — on Done, closes the server and writes a
-   Markdown transcript of the thread (returns `{saved_path}`).
+5. **`end_thread(export=true, path="<abs path>")`** — on Done, closes the server
+   and writes a Markdown transcript of the thread (returns `{saved_path}`). Pass
+   an **absolute** `path` (e.g. next to the source doc): Claude Code's working
+   directory varies across turns, so the default `cwd/marginalia-thread.md` can
+   land somewhere unexpected. The returned `{saved_path}` always reports where it
+   actually wrote.
 
 ## Rules
 
@@ -43,3 +47,5 @@ If the `marginalia` MCP tools (`start_thread`, `await_comment`, `post_reply`,
   whole point (clean transcript recording).
 - Keep replies tight and scannable; they render in-page for a human.
 - One active thread at a time. Calling `start_thread` again replaces the prior one.
+- When a comment targets an element inside a reply card, its `element_id` is a
+  client-side `r<N>` id — reply to it normally; `post_reply` anchors to it fine.
