@@ -12,12 +12,15 @@ reply renders as an in-page card the user can comment on again (threaded).
 ## First-run setup (once per machine)
 
 If the `marginalia` MCP tools (`start_thread`, `await_comment`, `post_reply`,
-`end_thread`) are not available, the server isn't registered yet:
+`end_thread`) are not available, the server isn't loaded yet:
 
-1. Run `~/.claude/skills/marginalia/scripts/register.sh`.
-2. Tell the user to **restart Claude Code** (MCP servers load at startup).
-3. If Python deps are missing, run
-   `python3 -m pip install -r ~/.claude/skills/marginalia/requirements.txt` first.
+- **Installed as a plugin (recommended):** the bundled `.mcp.json` registers the
+  server automatically — just tell the user to **restart Claude Code**.
+- **Manual / skill-only install:** run `scripts/register.sh` (registers the MCP
+  server at user scope via `claude mcp add`), then **restart Claude Code**.
+
+If Python deps are missing, install them first:
+`python3 -m pip install -r requirements.txt`.
 
 ## The loop
 

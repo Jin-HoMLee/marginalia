@@ -1,0 +1,14 @@
+{
+  "name": "marginalia",
+  "description": "Home marketplace for the marginalia annotation plugin.",
+  "owner": {
+    "name": "Jin-Ho Lee"
+  },
+  "plugins": [
+    {
+      "name": "marginalia",
+      "source": "./",
+      "description": "Turn any Markdown into a browser-based, click-to-comment thread. Comments record as clean MCP tool_results; replies render as in-page, re-annotatable cards."
+    }
+  ]
+}
