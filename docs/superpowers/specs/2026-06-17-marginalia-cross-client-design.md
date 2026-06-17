@@ -8,14 +8,14 @@
 
 marginalia currently reads as a **Claude Code tool**: it's distributed as a CC plugin (`.claude-plugin/` + `marketplace.json` + `.mcp.json`), its usage doc is a CC `SKILL.md`, and its install path is `/plugin install`. But the engine is a standard FastMCP-over-stdio server — protocol-portable, not Claude-specific. The owner uses **Cline** (VS Code extension agent) and **opencode** (SST terminal agent) and wants marginalia working there too, without the tool being locked to one platform.
 
-**Goal:** make marginalia install and run cleanly across **Claude Code, Cline, and opencode** (own-use, not mass-adoption), leading with the portable server and demoting CC-specific packaging to one optional convenience.
+**Goal:** make marginalia install and run cleanly across **Claude Code, Cline, and opencode** (own-use, not mass-adoption), leading with the portable server and removing CC-specific packaging entirely — CC becomes just one client among three.
 
 ## Key research findings (drove the design)
 
 1. **The `{command, args, env}` triple is the closest thing to a universal MCP-server install standard.** CC, Cline, and opencode all consume it (opencode reshapes it into an array form under an `mcp` key). Source: client docs, verified 2026-06-17.
 2. **`uvx` is the de-facto idiomatic launcher** for stdio servers (official reference servers standardize on `uvx`/`npx`). Running marginalia via `uvx` makes every client's config one line and eliminates per-machine absolute paths.
 3. **CC plugin path-traversal is forbidden.** A CC plugin only gets its own subdir copied to the cache; `${CLAUDE_PLUGIN_ROOT}/../../server` does not resolve. The documented workaround (in-plugin symlinks) is *unnecessary* once the code is a `uvx`-runnable package — the plugin's `.mcp.json` just calls `uvx`.
-4. **A thin client-specific adapter is endorsed, not siloing** — provided the MCP server stays the portable core (Sentry/Context7 ship a CC plugin *alongside* neutral packaging). The anti-pattern is making the plugin the *only* artifact.
+4. **A thin client-specific adapter is endorsed, not siloing** — provided the MCP server stays the portable core (Sentry/Context7 ship a CC plugin *alongside* neutral packaging). The anti-pattern is making the plugin the *only* artifact. (We nonetheless chose to **drop** the CC plugin entirely: for a solo own-use tool, `uvx` + `claude mcp add` already gives CC a one-line install, so a plugin adds maintained artifacts without buying enough to justify them.)
 5. **opencode has a hardcoded ~30s MCP-exec timeout** (made-configurable request closed as not-planned) plus a ~120s outer cap. Our ~9-min long-poll **breaks on opencode** unless the poll bound is shortened. Cline carries the long-poll cleanly (per-server `timeout`, settable ~3600s). This is the one portability-critical behavior change.
 6. **Skip `.mcpb` bundles** (Claude-Desktop-centric; poor Python+pydantic bundling) and **treat the official MCP registry as optional discoverability later** (preview; clients don't consume it directly).
 
@@ -25,8 +25,8 @@ marginalia currently reads as a **Claude Code tool**: it's distributed as a CC p
 
 - **Spine:** marginalia becomes a `uvx`-runnable Python package. Start with **git+uvx** (no PyPI release ceremony, private-capable, works today); graduate to PyPI when polishing for the community marketplace (tracked at [marginalia#1](https://github.com/Jin-HoMLee/marginalia/issues/1)). Config shape is identical either way.
   - Run form: `uvx --from git+https://github.com/Jin-HoMLee/marginalia@<tag> marginalia`
-- **Per-client install = one config snippet each** (in the README matrix). No per-client *code* for Cline/opencode.
-- **CC plugin kept but demoted** to an optional convenience under `clients/claude-code/`; its `.mcp.json` calls `uvx`, so it carries no shared-code/symlink machinery.
+- **Per-client install = one config snippet each** (in the README matrix). No per-client *code* and no per-client *packaging* — every client (CC included) registers the same `uvx` server via its own config file.
+- **Fully neutral: no CC plugin, no marketplace catalog, no CC `clients/` folder, no maintained `SKILL.md`.** CC is just one client that runs `claude mcp add … -- uvx … marginalia`. The CC plugin/marketplace machinery (and its symlink/path-traversal constraints) is removed entirely — `uvx` makes it unnecessary. Decided 2026-06-17 in favor of zero CC-specific maintained artifacts and zero lock-in.
 
 ### Repo structure (target)
 
@@ -38,18 +38,13 @@ marginalia/
 │   ├── store.py  render.py  http_face.py  export.py
 │   └── assets/{theme.css,annotate.js}
 ├── pyproject.toml              # deps + console entry point `marginalia`
-├── USAGE.md                    # canonical, client-neutral usage doc
-├── README.md                   # install matrix: 3 one-line config snippets
+├── USAGE.md                    # canonical, client-neutral usage doc (wire into any client's rules)
+├── README.md                   # install matrix: 3 one-line config snippets, all uvx
 ├── tests/                      # existing 32 tests (paths updated)
-├── requirements.txt            # dev convenience (kept; mirrors pyproject dev deps)
-└── clients/
-    └── claude-code/            # OPTIONAL thin CC plugin
-        ├── .claude-plugin/plugin.json
-        ├── .mcp.json           # → uvx --from git+… marginalia
-        └── skills/marginalia/SKILL.md
+└── requirements.txt            # dev convenience (kept; mirrors pyproject dev deps)
 ```
 
-Note: the CC **marketplace catalog** (`.claude-plugin/marketplace.json`) must stay at repo root if the `/plugin marketplace add` flow is retained; it points at `./clients/claude-code`. Cline and opencode need **no files in the repo** — only README snippets.
+**Removed by going fully neutral:** `.claude-plugin/` (plugin.json + marketplace.json), the root `.mcp.json`, `skills/marginalia/SKILL.md`, and any `clients/` folder. No client gets bespoke packaging in the repo — each (CC, Cline, opencode) registers the `uvx` server via its own config file, documented in the README matrix.
 
 ### Components and changes
 
@@ -73,13 +68,15 @@ Note: the CC **marketplace catalog** (`.claude-plugin/marketplace.json`) must st
 - Default threads dir reads `MARGINALIA_THREADS_DIR` (default `~/.marginalia/threads/`), replacing the CC-specific `~/.claude/skills/marginalia/threads/<cc-project-slug>/` convention.
 - Drop the CC-only project-slug derivation. The agent passes an **absolute** `path` to `end_thread` and names the thread from the doc title. `end_thread` continues to `mkdir -p` the parent.
 
-**4. USAGE.md (canonical) + SKILL.md (CC mirror)**
-- `USAGE.md`: the loop (`start_thread` → `await_comment` → `post_reply` → `end_thread`) + rules, **minus** CC-specific first-run setup. This is what the user pastes into Cline `.clinerules/` or opencode `AGENTS.md`.
-- `SKILL.md` keeps CC frontmatter (`name`, `description`); body mirrors USAGE.md. Manual sync (small, rarely changes) — noted as a known risk; no generator.
+**4. USAGE.md (single canonical doc — no SKILL.md)**
+- `USAGE.md`: the loop (`start_thread` → `await_comment` → `post_reply` → `end_thread`) + rules, **minus** CC-specific first-run setup. One file, wired into each client's rules mechanism:
+  - **Cline:** paste/include into `.clinerules/`.
+  - **opencode:** paste/include into `AGENTS.md`.
+  - **CC:** reference from `CLAUDE.md`, **or** (optional, for CC's lazy-loaded skill UX) copy `USAGE.md` to `~/.claude/skills/marginalia/SKILL.md` and prepend a 2-line `name`/`description` frontmatter. The README documents this; the repo ships **no** maintained `SKILL.md` (avoids the prior duplication/sync risk).
 
 **5. README install matrix**
 Three snippets, each with a pinned `@<tag>`, the warm-the-cache-once note (uvx cold-start can cause a client to drop the server), and the absolute-`uvx`-path fallback for Cline's GUI launch:
-- **Claude Code:** `claude mcp add marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@<tag> marginalia` (or the optional `/plugin` path).
+- **Claude Code:** `claude mcp add marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@<tag> marginalia` (no plugin). Plus the optional "make it a CC skill" note from component 4.
 - **Cline** (`cline_mcp_settings.json`): `mcpServers` map, `command`/`args`/`env`/`timeout` (set `timeout` ~3600, `env.MARGINALIA_POLL_S` ~540).
 - **opencode** (`opencode.json`): `mcp` map, `type:"local"`, `command` array, `environment.MARGINALIA_POLL_S` `"20"`, `enabled:true`.
 
@@ -101,10 +98,12 @@ Three snippets, each with a pinned `@<tag>`, the warm-the-cache-once note (uvx c
 
 - PyPI publication (deferred to the polish/community-marketplace milestone, [marginalia#1](https://github.com/Jin-HoMLee/marginalia/issues/1)).
 - `.mcpb` bundle, official MCP registry entry, Smithery/PulseMCP listing.
+- CC plugin / marketplace packaging (**removed**, not deferred — `uvx` + `claude mcp add` covers CC with zero CC-specific artifacts).
 - Claude Desktop / Cursor adapters (add a README snippet only if/when actually used — config is the same triple).
 - Any change to the annotation engine, browser UI, or the four-tool MCP loop.
 
 ## Migration notes
 
-- This restructures the existing public repo (`server/` → `src/marginalia/`, new `pyproject.toml`, `clients/` folder, USAGE.md). The current root-`./`-source CC plugin install is replaced by the `clients/claude-code/` plugin + `uvx` `.mcp.json`.
-- The live install on the owner's machine (currently the plugin from the pre-pivot layout) will be re-pointed to the `uvx` config as part of acceptance.
+- This restructures the existing public repo: `server/` → `src/marginalia/`; add `pyproject.toml` + `USAGE.md`; **delete** `.claude-plugin/` (plugin.json + marketplace.json), the root `.mcp.json`, and `skills/marginalia/SKILL.md`.
+- The current CC **plugin install** is retired in favor of the neutral `uvx` config across all clients. The live install on the owner's machine (the plugin from the pre-pivot layout) will be removed and re-registered via `claude mcp add … -- uvx … marginalia` as part of acceptance.
+- The owner's `marginalia#1` follow-up (community-marketplace submission) stays open but its content shifts: "submit when polished" now means the PyPI + (optional) registry path, not a CC marketplace listing.
