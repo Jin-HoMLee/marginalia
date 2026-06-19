@@ -4,6 +4,11 @@
   var replyCidCounter = 0;    // unique ids for elements inside reply cards
   var popup = null;
   var drafts = {};            // cid -> unsent draft text, so an accidental close never loses typing
+  var state = "live";         // live -> closing -> closed
+  var closeTimer = null;      // setTimeout that commits the close
+  var countdownTimer = null;  // setInterval that ticks the banner number
+  var pollHandle = null;      // setInterval for reply polling (stopped on commit)
+  var banner = null;          // the fixed closing/closed banner element
 
   function escapeHtml(s) {
     return s.replace(/[&<>"']/g, function (c) {
@@ -25,6 +30,7 @@
 
   function onClick(e) {
     e.stopPropagation();
+    if (state !== "live") return;   // frozen: no-op any stray click
     openPopup(e.currentTarget);
   }
 
@@ -186,18 +192,78 @@
     }).catch(function () { /* server gone / transient */ });
   }
 
+  function removeBanner() {
+    if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
+    banner = null;
+  }
+
+  function clearCloseTimers() {
+    if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  }
+
+  // Done clicked: live -> closing. Freeze input, open the 6s grace window.
+  // /done is NOT sent yet.
+  function beginClosing() {
+    if (state !== "live") return;
+    state = "closing";
+    closePopup();                                  // preserves any draft for Undo
+    document.body.classList.add("mg-frozen");
+    var seconds = 6;
+    removeBanner();
+    banner = document.createElement("div");
+    banner.className = "mg-banner mg-banner-closing";
+    banner.innerHTML =
+      '<span class="mg-banner-msg">Closing thread… ' +
+      '<b class="mg-count">' + seconds + '</b>s</span>' +
+      '<span class="mg-banner-actions">' +
+      '<button class="mg-undo">Undo</button>' +
+      '<button class="mg-close-now">Close now</button></span>';
+    document.body.appendChild(banner);
+    banner.querySelector(".mg-undo").onclick = undoClose;
+    banner.querySelector(".mg-close-now").onclick = commitClose;
+    var remaining = seconds;
+    var countEl = banner.querySelector(".mg-count");
+    countdownTimer = setInterval(function () {
+      remaining -= 1;
+      countEl.textContent = remaining < 0 ? 0 : remaining;
+    }, 1000);
+    closeTimer = setTimeout(commitClose, seconds * 1000);
+  }
+
+  // Undo (only edge back): closing -> live. Claude never saw it.
+  function undoClose() {
+    if (state !== "closing") return;
+    clearCloseTimers();
+    removeBanner();
+    document.body.classList.remove("mg-frozen");
+    state = "live";
+  }
+
+  // Commit (countdown elapsed or Close now): closing -> closed. Terminal.
+  // Now POST /done, stop polling, make the banner permanent.
+  function commitClose() {
+    if (state === "closed") return;
+    state = "closed";
+    clearCloseTimers();
+    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+    fetch("/done", { method: "POST" }).catch(function () { /* server may be tearing down */ });
+    removeBanner();
+    banner = document.createElement("div");
+    banner.className = "mg-banner mg-banner-closed";
+    banner.innerHTML =
+      '<span class="mg-banner-msg">Thread closed — safe to close this tab.</span>';
+    document.body.appendChild(banner);
+  }
+
   function init() {
     makeClickable(document.getElementById("mg-doc"));
     document.addEventListener("click", function (e) {
       if (popup && !popup.contains(e.target) && !e.target.closest("[data-cid]")) closePopup();
     });
     var doneBtn = document.getElementById("mg-done");
-    if (doneBtn) doneBtn.onclick = function () {
-      fetch("/done", { method: "POST" })
-        .then(function () { toast("Thread closed"); })
-        .catch(function () { toast("Could not close — is the server up?"); });
-    };
-    setInterval(pollReplies, 1500);
+    if (doneBtn) doneBtn.onclick = beginClosing;
+    pollHandle = setInterval(pollReplies, 1500);
     pollReplies();
   }
 

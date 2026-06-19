@@ -32,3 +32,17 @@ def test_annotate_js_has_contract_hooks():
     assert "drafts" in js
     assert "#reply:" in js
     assert "mg-opt" in js
+
+
+def test_annotate_js_has_close_flow_hooks():
+    js = (ASSETS / "annotate.js").read_text(encoding="utf-8")
+    # state machine + grace-window UI
+    assert "beginClosing" in js
+    assert "commitClose" in js
+    assert "undoClose" in js
+    assert "mg-banner" in js
+    assert "mg-frozen" in js
+    assert "Undo" in js
+    assert "Close now" in js
+    # 6-second grace window
+    assert "6" in js
