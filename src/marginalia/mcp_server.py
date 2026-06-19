@@ -40,8 +40,7 @@ def _slug(title):
 
 def _default_export_path(store):
     base = os.environ.get("MARGINALIA_THREADS_DIR") or str(Path.home() / ".marginalia" / "threads")
-    title = store.title if (store and store.title) else "marginalia-thread"
-    return Path(base) / (_slug(title) + ".thread.md")
+    return Path(base) / (_slug(store.title) + ".thread.md")
 
 
 def _teardown():
