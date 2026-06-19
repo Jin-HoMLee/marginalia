@@ -79,3 +79,18 @@ def test_end_without_export_skips_file(tmp_path):
     res = m._do_end(export=False)
     assert res == {"saved_path": None}
     assert m._STATE["store"] is None  # still tears down
+
+
+def test_resolve_poll_timeout_prefers_explicit(monkeypatch):
+    monkeypatch.setenv("MARGINALIA_POLL_S", "20")
+    assert m._resolve_poll_timeout(5) == 5
+
+
+def test_resolve_poll_timeout_reads_env_when_none(monkeypatch):
+    monkeypatch.setenv("MARGINALIA_POLL_S", "20")
+    assert m._resolve_poll_timeout(None) == 20
+
+
+def test_resolve_poll_timeout_defaults_when_unset(monkeypatch):
+    monkeypatch.delenv("MARGINALIA_POLL_S", raising=False)
+    assert m._resolve_poll_timeout(None) == 540

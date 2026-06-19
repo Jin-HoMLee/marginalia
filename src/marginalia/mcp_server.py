@@ -25,6 +25,14 @@ _STATE = {"store": None, "http": None}
 _DEFAULT_PORT = int(os.environ.get("MARGINALIA_PORT", "8787"))
 
 
+def _resolve_poll_timeout(timeout_s=None):
+    """Explicit arg wins; else MARGINALIA_POLL_S; else 540s. Short bounds (e.g. 20
+    on opencode, which caps MCP exec ~30s) just mean the agent re-polls more often."""
+    if timeout_s is not None:
+        return timeout_s
+    return int(os.environ.get("MARGINALIA_POLL_S", "540"))
+
+
 def _teardown():
     if _STATE.get("http") is not None:
         try:
@@ -54,12 +62,12 @@ def _do_start(markdown, title="marginalia", open_browser=True):
     return {"url": url, "n_elements": len(elements)}
 
 
-async def _do_await(timeout_s=540):
+async def _do_await(timeout_s=None):
     # Capture a local ref: it keeps the store alive even if _teardown() nulls _STATE mid-loop.
     store = _STATE["store"]
     if store is None:
         return {"status": "error", "message": "no active thread; call start_thread first"}
-    end = time.monotonic() + max(1, timeout_s)
+    end = time.monotonic() + max(1, _resolve_poll_timeout(timeout_s))
     while time.monotonic() < end:
         if store.done.is_set():
             return {"status": "done"}
@@ -110,7 +118,7 @@ def start_thread(markdown: str, title: str = "marginalia") -> dict:
 
 
 @mcp.tool()
-async def await_comment(timeout_s: int = 540) -> dict:
+async def await_comment(timeout_s: int = None) -> dict:
     """Block until the next browser comment, a Done click, or the timeout.
 
     Returns {status:"comment", element_id, label, comment} for a real comment,
