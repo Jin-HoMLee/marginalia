@@ -10,6 +10,12 @@ def test_theme_css_has_core_classes():
         assert token in css, f"missing {token} in theme.css"
 
 
+def test_theme_css_has_freeze_and_banner_classes():
+    css = (ASSETS / "theme.css").read_text(encoding="utf-8")
+    for token in [".mg-frozen", ".mg-banner", ".mg-undo", ".mg-close-now"]:
+        assert token in css, f"missing {token} in theme.css"
+
+
 def test_annotate_js_has_contract_hooks():
     js = (ASSETS / "annotate.js").read_text(encoding="utf-8")
     # HTTP contract endpoints the server implements
