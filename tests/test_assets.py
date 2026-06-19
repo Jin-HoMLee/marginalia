@@ -1,7 +1,7 @@
 # tests/test_assets.py
 from pathlib import Path
 
-ASSETS = Path(__file__).resolve().parents[1] / "server" / "assets"
+ASSETS = Path(__file__).resolve().parents[1] / "src" / "marginalia" / "assets"
 
 
 def test_theme_css_has_core_classes():

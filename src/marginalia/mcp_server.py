@@ -5,21 +5,19 @@ Registered via:   claude mcp add --scope user marginalia -- python3 <abs path>
 """
 import asyncio
 import os
+import re
 import sys
 import time
 import webbrowser
 from pathlib import Path
 
-# Make sibling modules importable whether run as a script or a module.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import markdown as _md
+from mcp.server.fastmcp import FastMCP
 
-import markdown as _md  # noqa: E402
-from mcp.server.fastmcp import FastMCP  # noqa: E402
-
-from store import ThreadStore  # noqa: E402
-from render import render  # noqa: E402
-from http_face import HttpFace  # noqa: E402
-from export import export_markdown  # noqa: E402
+from .store import ThreadStore
+from .render import render
+from .http_face import HttpFace
+from .export import export_markdown
 
 mcp = FastMCP("marginalia")
 
@@ -135,5 +133,9 @@ def end_thread(export: bool = True, path: str = "") -> dict:
     return _do_end(export=export, path=path)
 
 
-if __name__ == "__main__":
+def main():
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

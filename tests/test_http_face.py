@@ -5,8 +5,8 @@ import urllib.error
 
 import pytest
 
-from store import ThreadStore
-from http_face import HttpFace
+from marginalia.store import ThreadStore
+from marginalia.http_face import HttpFace
 
 
 @pytest.fixture

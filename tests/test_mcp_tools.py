@@ -1,7 +1,7 @@
 # tests/test_mcp_tools.py
 import asyncio
 
-import mcp_server as m
+import marginalia.mcp_server as m
 
 
 def setup_function(_fn):

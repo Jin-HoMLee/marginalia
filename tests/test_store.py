@@ -1,5 +1,5 @@
 # tests/test_store.py
-from store import ThreadStore
+from marginalia.store import ThreadStore
 
 
 def test_set_render_records_html_and_elements():
