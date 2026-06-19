@@ -1,7 +1,7 @@
 """marginalia MCP server: stdio JSON-RPC tools + bundled localhost HTTP face.
 
-Run as a script:  python3 /abs/path/server/mcp_server.py
-Registered via:   claude mcp add --scope user marginalia -- python3 <abs path>
+Run via the console entry point:  marginalia   (installed from this package)
+Registered via:   claude mcp add --scope user marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia
 """
 import asyncio
 import os
@@ -128,7 +128,7 @@ def start_thread(markdown: str, title: str = "marginalia") -> dict:
 
 
 @mcp.tool()
-async def await_comment(timeout_s: int = None) -> dict:
+async def await_comment(timeout_s: int | None = None) -> dict:
     """Block until the next browser comment, a Done click, or the timeout.
 
     Returns {status:"comment", element_id, label, comment} for a real comment,
