@@ -1,42 +1,81 @@
 # marginalia
 
-A Claude Code skill: render any Markdown into a browser-based, click-to-comment
-thread. Comments return to Claude as clean MCP `tool_result`s; replies render as
-in-page cards that are themselves annotatable (threaded).
+Turn any Markdown into a browser-based, click-to-comment thread over MCP. Comments
+record as clean, anchored MCP `tool_result`s; replies render as in-page,
+re-annotatable cards. One portable FastMCP-over-stdio server, launched with `uvx`,
+installs identically across **Claude Code, Cline, and opencode**.
+
+See [USAGE.md](USAGE.md) for the tool loop and environment variables.
 
 ## Install
 
-**As a Claude Code plugin (recommended):**
+marginalia runs via `uvx` straight from git — no clone, no PyPI release needed.
+During development the snippets pin `@main`; switch to a pinned `@vX.Y.Z` tag once a
+release is cut.
+
+> **Warm the cache once:** the first `uvx --from git+…` resolve can take long enough
+> that a client drops the server on first launch. Run the bare command once in a
+> terminal to populate the uvx cache, then start your client.
+>
+> ```bash
+> uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia --help 2>/dev/null || true
+> ```
+
+### Claude Code
 
 ```bash
-/plugin marketplace add Jin-HoMLee/marginalia
-/plugin install marginalia@marginalia
-# restart Claude Code
+claude mcp add --scope user marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia
 ```
 
-The bundled `.mcp.json` registers the MCP server automatically. If Python deps
-are missing, run `python3 -m pip install -r requirements.txt`.
+Optional (for CC's lazy-loaded skill UX): copy `USAGE.md` to
+`~/.claude/skills/marginalia/SKILL.md` and prepend a two-line frontmatter
+(`name: marginalia` / `description: …`). The repo ships no maintained `SKILL.md`.
 
-**Manual (skill + MCP at user scope, no plugin):**
+### Cline (`cline_mcp_settings.json`)
+
+```json
+{
+  "mcpServers": {
+    "marginalia": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Jin-HoMLee/marginalia@main", "marginalia"],
+      "env": { "MARGINALIA_POLL_S": "540" },
+      "timeout": 3600
+    }
+  }
+}
+```
+
+If Cline is launched from the VS Code GUI and can't find `uvx` on `PATH`, use the
+absolute path to `uvx` (e.g. `~/.local/bin/uvx`) as `command`.
+
+### opencode (`opencode.json`)
+
+```json
+{
+  "mcp": {
+    "marginalia": {
+      "type": "local",
+      "command": ["uvx", "--from", "git+https://github.com/Jin-HoMLee/marginalia@main", "marginalia"],
+      "environment": { "MARGINALIA_POLL_S": "20" },
+      "enabled": true
+    }
+  }
+}
+```
+
+`MARGINALIA_POLL_S=20` is required — opencode caps MCP tool execution at ~30s, so the
+default 540s long-poll would be killed.
+
+## Develop
 
 ```bash
-python3 -m pip install -r requirements.txt
-./scripts/register.sh        # registers the MCP server at user scope
-# restart Claude Code
+git clone https://github.com/Jin-HoMLee/marginalia && cd marginalia
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"
+pytest          # 38 tests
 ```
 
-## Test
+## License
 
-```bash
-python3 -m pytest -v
-```
-
-## Architecture
-
-One process, two faces: a FastMCP stdio server (the tools Claude calls) and a
-localhost HTTP server (serves the page, receives comments). They share one
-in-process `ThreadStore`. See
-[`docs/superpowers/specs/2026-06-16-marginalia-mcp-skill-design.md`](docs/superpowers/specs/2026-06-16-marginalia-mcp-skill-design.md)
-for the full design and
-[`docs/superpowers/plans/2026-06-16-marginalia-mcp-skill.md`](docs/superpowers/plans/2026-06-16-marginalia-mcp-skill.md)
-for the build plan.
+MIT — see [LICENSE](LICENSE).

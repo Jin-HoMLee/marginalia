@@ -1,7 +1,7 @@
-import os
 import sys
+from pathlib import Path
 
-# Make the server/ package modules importable as top-level (import store, render, ...)
-SERVER_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "server")
-if SERVER_DIR not in sys.path:
-    sys.path.insert(0, SERVER_DIR)
+# Make the src/ layout importable as `import marginalia...` without an install.
+SRC = Path(__file__).resolve().parents[1] / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))

@@ -1,5 +1,5 @@
 # tests/test_render.py
-from render import render, ANNOTATE_TAGS
+from marginalia.render import render, ANNOTATE_TAGS
 
 
 def test_returns_page_and_element_map():

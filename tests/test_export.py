@@ -1,6 +1,6 @@
 # tests/test_export.py
-from store import ThreadStore
-from export import export_markdown
+from marginalia.store import ThreadStore
+from marginalia.export import export_markdown
 
 
 def test_export_orders_comments_and_replies():

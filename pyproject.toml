@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marginalia"
+version = "2.0.0"
+description = "Turn any Markdown into a browser-based, click-to-comment thread over MCP."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Jin-Ho Lee" }]
+keywords = ["annotation", "review", "markdown", "mcp", "comments"]
+dependencies = [
+    "mcp>=1.2.0",
+    "markdown>=3.5",
+    "beautifulsoup4>=4.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+marginalia = "marginalia.mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/Jin-HoMLee/marginalia"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marginalia"]
