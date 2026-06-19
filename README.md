@@ -15,10 +15,12 @@ release is cut.
 
 > **Warm the cache once:** the first `uvx --from git+…` resolve can take long enough
 > that a client drops the server on first launch. Run the bare command once in a
-> terminal to populate the uvx cache, then start your client.
+> terminal to populate the uvx cache, then start your client. `marginalia` is a
+> stdio MCP server (no `--help`), so redirect stdin from `/dev/null` to make it
+> exit immediately once the cache is warm:
 >
 > ```bash
-> uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia --help 2>/dev/null || true
+> uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia </dev/null
 > ```
 
 ### Claude Code
@@ -45,6 +47,9 @@ Optional (for CC's lazy-loaded skill UX): copy `USAGE.md` to
   }
 }
 ```
+
+`MARGINALIA_POLL_S` is optional here — `540` is already the default, so the `env`
+block can be dropped entirely. It's shown only to make the long-poll window explicit.
 
 If Cline is launched from the VS Code GUI and can't find `uvx` on `PATH`, use the
 absolute path to `uvx` (e.g. `~/.local/bin/uvx`) as `command`.
@@ -73,7 +78,7 @@ default 540s long-poll would be killed.
 git clone https://github.com/Jin-HoMLee/marginalia && cd marginalia
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-pytest          # 38 tests
+pytest          # 40 tests
 ```
 
 ## License

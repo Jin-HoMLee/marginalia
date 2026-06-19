@@ -117,8 +117,11 @@ def test_resolve_poll_timeout_tolerates_bad_env(monkeypatch):
 
 def test_export_default_uses_threads_dir_env(tmp_path, monkeypatch):
     monkeypatch.setenv("MARGINALIA_THREADS_DIR", str(tmp_path))
-    m._do_start("# Hi\n\nPara.", title="My Doc", open_browser=False)
-    m._STATE["store"].add_comment("c1", "q")
+    # Register a store directly — _do_end only needs title + events to export,
+    # so there's no reason to stand up the HTTP face and bind a real port here.
+    store = m.ThreadStore(title="My Doc")
+    store.add_comment("c1", "q")
+    m._STATE["store"] = store
     res = m._do_end(export=True)  # no explicit path
     saved = Path(res["saved_path"])
     assert saved.parent == tmp_path
@@ -128,10 +131,9 @@ def test_export_default_uses_threads_dir_env(tmp_path, monkeypatch):
 
 def test_default_export_path_falls_back_to_home(monkeypatch):
     monkeypatch.delenv("MARGINALIA_THREADS_DIR", raising=False)
-    m._do_start("# Hi", title="T", open_browser=False)
-    p = m._default_export_path(m._STATE["store"])
+    # _default_export_path is a pure function of the store's title; no server needed.
+    p = m._default_export_path(m.ThreadStore(title="T"))
     assert p == Path.home() / ".marginalia" / "threads" / "t.thread.md"
-    m._teardown()
 
 
 def test_slug_handles_punctuation_and_empty():
