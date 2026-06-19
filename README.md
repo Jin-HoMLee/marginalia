@@ -10,8 +10,8 @@ See [USAGE.md](USAGE.md) for the tool loop and environment variables.
 ## Install
 
 marginalia runs via `uvx` straight from git — no clone, no PyPI release needed.
-During development the snippets pin `@main`; switch to a pinned `@vX.Y.Z` tag once a
-release is cut.
+The snippets below pin the latest release tag, `@v2.0.0`. To track unreleased
+changes instead, swap the tag for `@main`.
 
 > **Warm the cache once:** the first `uvx --from git+…` resolve can take long enough
 > that a client drops the server on first launch. Run the bare command once in a
@@ -20,13 +20,13 @@ release is cut.
 > exit immediately once the cache is warm:
 >
 > ```bash
-> uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia </dev/null
+> uvx --from git+https://github.com/Jin-HoMLee/marginalia@v2.0.0 marginalia </dev/null
 > ```
 
 ### Claude Code
 
 ```bash
-claude mcp add --scope user marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia
+claude mcp add --scope user marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@v2.0.0 marginalia
 ```
 
 Optional (for CC's lazy-loaded skill UX): copy `USAGE.md` to
@@ -40,7 +40,7 @@ Optional (for CC's lazy-loaded skill UX): copy `USAGE.md` to
   "mcpServers": {
     "marginalia": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/Jin-HoMLee/marginalia@main", "marginalia"],
+      "args": ["--from", "git+https://github.com/Jin-HoMLee/marginalia@v2.0.0", "marginalia"],
       "env": { "MARGINALIA_POLL_S": "540" },
       "timeout": 3600
     }
@@ -61,7 +61,7 @@ absolute path to `uvx` (e.g. `~/.local/bin/uvx`) as `command`.
   "mcp": {
     "marginalia": {
       "type": "local",
-      "command": ["uvx", "--from", "git+https://github.com/Jin-HoMLee/marginalia@main", "marginalia"],
+      "command": ["uvx", "--from", "git+https://github.com/Jin-HoMLee/marginalia@v2.0.0", "marginalia"],
       "environment": { "MARGINALIA_POLL_S": "20" },
       "enabled": true
     }
