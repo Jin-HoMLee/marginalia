@@ -243,6 +243,9 @@
   // Commit (countdown elapsed or Close now): closing -> closed. Terminal.
   // Now POST /done, stop polling, make the banner permanent.
   function commitClose() {
+    // Guard is "=== closed" (idempotent commit), NOT "=== closing": both the
+    // timeout and [Close now] are valid callers, and if they race the second
+    // is a no-op. The asymmetry vs undoClose/beginClosing is intentional.
     if (state === "closed") return;
     state = "closed";
     clearCloseTimers();
