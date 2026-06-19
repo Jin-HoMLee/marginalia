@@ -33,6 +33,17 @@ def _resolve_poll_timeout(timeout_s=None):
     return int(os.environ.get("MARGINALIA_POLL_S", "540"))
 
 
+def _slug(title):
+    s = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
+    return s or "marginalia-thread"
+
+
+def _default_export_path(store):
+    base = os.environ.get("MARGINALIA_THREADS_DIR") or str(Path.home() / ".marginalia" / "threads")
+    title = store.title if (store and store.title) else "marginalia-thread"
+    return Path(base) / (_slug(title) + ".thread.md")
+
+
 def _teardown():
     if _STATE.get("http") is not None:
         try:
@@ -95,7 +106,7 @@ def _do_end(export=True, path=""):
     error = None
     if export:
         text = export_markdown(store)
-        out = Path(path) if path else (Path.cwd() / "marginalia-thread.md")
+        out = Path(path) if path else _default_export_path(store)
         try:
             out.parent.mkdir(parents=True, exist_ok=True)  # ensure the target dir exists
             out.write_text(text, encoding="utf-8")
