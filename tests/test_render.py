@@ -48,3 +48,8 @@ def test_inner_p_of_blockquote_is_not_annotated():
     # only the blockquote is annotated, not the <p> markdown nests inside it
     assert len(elements) == 1
     assert "just a quote" in next(iter(elements.values()))
+
+
+def test_page_still_serves_done_button():
+    page, _ = render("hello")
+    assert 'id="mg-done"' in page
