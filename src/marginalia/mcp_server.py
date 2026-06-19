@@ -22,7 +22,22 @@ from .export import export_markdown
 mcp = FastMCP("marginalia")
 
 _STATE = {"store": None, "http": None}
-_DEFAULT_PORT = int(os.environ.get("MARGINALIA_PORT", "8787"))
+
+
+def _int_env(name, default):
+    """Parse an int env var, tolerating unset/empty/non-numeric values by
+    returning `default` — a bad value in a client config or dotfile must not
+    crash the server."""
+    val = os.environ.get(name, "").strip()
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
+_DEFAULT_PORT = _int_env("MARGINALIA_PORT", 8787)
 
 
 def _resolve_poll_timeout(timeout_s=None):
@@ -30,7 +45,7 @@ def _resolve_poll_timeout(timeout_s=None):
     on opencode, which caps MCP exec ~30s) just mean the agent re-polls more often."""
     if timeout_s is not None:
         return timeout_s
-    return int(os.environ.get("MARGINALIA_POLL_S", "540"))
+    return _int_env("MARGINALIA_POLL_S", 540)
 
 
 def _slug(title):

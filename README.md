@@ -24,7 +24,7 @@ release is cut.
 ### Claude Code
 
 ```bash
-claude mcp add marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia
+claude mcp add --scope user marginalia -- uvx --from git+https://github.com/Jin-HoMLee/marginalia@main marginalia
 ```
 
 Optional (for CC's lazy-loaded skill UX): copy `USAGE.md` to

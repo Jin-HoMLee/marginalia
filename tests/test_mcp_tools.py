@@ -97,6 +97,24 @@ def test_resolve_poll_timeout_defaults_when_unset(monkeypatch):
     assert m._resolve_poll_timeout(None) == 540
 
 
+def test_int_env_tolerates_bad_values(monkeypatch):
+    monkeypatch.delenv("MG_X", raising=False)
+    assert m._int_env("MG_X", 7) == 7          # unset -> default
+    monkeypatch.setenv("MG_X", "")
+    assert m._int_env("MG_X", 7) == 7          # empty -> default
+    monkeypatch.setenv("MG_X", "  ")
+    assert m._int_env("MG_X", 7) == 7          # whitespace -> default
+    monkeypatch.setenv("MG_X", "abc")
+    assert m._int_env("MG_X", 7) == 7          # non-numeric -> default
+    monkeypatch.setenv("MG_X", "20")
+    assert m._int_env("MG_X", 7) == 20         # valid -> parsed
+
+
+def test_resolve_poll_timeout_tolerates_bad_env(monkeypatch):
+    monkeypatch.setenv("MARGINALIA_POLL_S", "not-a-number")
+    assert m._resolve_poll_timeout(None) == 540  # bad env must not crash
+
+
 def test_export_default_uses_threads_dir_env(tmp_path, monkeypatch):
     monkeypatch.setenv("MARGINALIA_THREADS_DIR", str(tmp_path))
     m._do_start("# Hi\n\nPara.", title="My Doc", open_browser=False)
