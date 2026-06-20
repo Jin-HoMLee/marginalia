@@ -68,3 +68,20 @@ a.mg-opt{display:inline-block;margin:.35rem .4rem .1rem 0;padding:.3rem .85rem;
   font-size:.85rem;text-decoration:none;cursor:pointer;}
 a.mg-opt:hover{filter:brightness(1.08);}
 a.mg-opt-chosen{background:var(--accent);pointer-events:none;opacity:.85;}
+
+/* freeze-on-Done: dim + lock content, keep the banner live */
+body.mg-frozen #mg-doc,
+body.mg-frozen .mg-bar{opacity:.55;pointer-events:none;}
+.mg-banner{position:fixed;top:0;left:0;right:0;z-index:300;
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  padding:.7rem 1.2rem;background:var(--card);
+  border-bottom:1px solid var(--accent);box-shadow:0 6px 24px rgba(0,0,0,.5);}
+.mg-banner-msg{color:var(--ink);font-weight:600;}
+.mg-banner-msg .mg-count{color:var(--accent);}
+.mg-banner-actions{display:flex;gap:.6rem;flex:0 0 auto;}
+.mg-banner button{border:0;border-radius:7px;padding:.35rem .9rem;
+  cursor:pointer;font-weight:700;}
+.mg-undo{background:var(--link);color:#04111f;}
+.mg-close-now{background:#222836;color:var(--ink);}
+.mg-banner-closed{border-bottom-color:var(--line);}
+.mg-banner-closed .mg-banner-msg{color:var(--muted);}
