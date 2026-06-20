@@ -44,5 +44,22 @@ def test_annotate_js_has_close_flow_hooks():
     assert "mg-frozen" in js
     assert "Undo" in js
     assert "Close now" in js
-    # 6-second grace window
-    assert "6" in js
+    # 6-second grace window — pin the real source of truth, not a substring of
+    # "}, 1600)" (the toast timeout), which "6" would also match
+    assert "var seconds = 6" in js
+
+
+def test_annotate_js_freeze_guards_cover_all_post_paths():
+    """The freeze state machine must gate every path that can POST /comment or
+    strand /done — the silent-loss and hung-thread cases the feature targets."""
+    js = (ASSETS / "annotate.js").read_text(encoding="utf-8")
+    # #1: the live-only guard must cover three sites — onClick, beginClosing,
+    # AND the mg-opt answer-button handler (CSS pointer-events doesn't block
+    # keyboard / programmatic activation of the latter).
+    assert js.count('state !== "live"') >= 3, "mg-opt handler missing the live-only guard"
+    # #2: a tab-close during the grace window must still deliver /done.
+    assert "pagehide" in js
+    assert "sendBeacon" in js
+    # #3: a late /replies render must not append under the closed banner —
+    # commitClose already guards on "closed"; renderReply must too.
+    assert js.count('state === "closed"') >= 2, "renderReply missing the closed guard"

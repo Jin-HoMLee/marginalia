@@ -138,6 +138,7 @@
   // Render a reply card under the element it answers, make it annotatable, and
   // wire any [label](#reply:answer) links as clickable answer options.
   function renderReply(rec) {
+    if (state === "closed") return;   // a poll in flight at commit must not append under the closed banner
     var anchor = document.querySelector('[data-cid="' + CSS.escape(rec.element_id) + '"]');
     var card = document.createElement("details");
     card.className = "mg-reply";
@@ -169,6 +170,7 @@
         a.addEventListener("click", function (ev) {
           ev.preventDefault();
           ev.stopPropagation();
+          if (state !== "live") return;   // frozen: CSS blocks the mouse, this blocks keyboard/programmatic
           if (a.classList.contains("mg-opt-chosen")) return;
           a.classList.add("mg-opt-chosen");
           submitComment(rec.element_id, cardLabel, answer, card)
@@ -266,6 +268,13 @@
     });
     var doneBtn = document.getElementById("mg-done");
     if (doneBtn) doneBtn.onclick = beginClosing;
+    // If the tab is torn down mid-grace (Done clicked, countdown not elapsed,
+    // Close-now not clicked), commitClose's setTimeout never fires and /done is
+    // never sent — Claude's await_comment would hang. sendBeacon survives unload
+    // where a fetch would be cancelled. (mark_done is idempotent server-side.)
+    window.addEventListener("pagehide", function () {
+      if (state === "closing") navigator.sendBeacon("/done");
+    });
     pollHandle = setInterval(pollReplies, 1500);
     pollReplies();
   }
