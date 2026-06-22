@@ -67,10 +67,8 @@ partial-release drift**, each verified by running:
 3. **Repoint the `@vX.Y.Z` pins** in `README.md` (install snippets) and any MCP
    registration docs.
 
-> ⚠️ **Known drift (2026-06-22):** `pyproject.toml` still says `version = "2.0.0"`
-> while the latest tag is `v2.1.0` and the README pins `@v2.1.0` — step 2 was
-> skipped at the v2.1.0 release. Bump it to `2.1.0`. (Currently cosmetic because
-> install is git-tag-based, but it will bite when issue #1 / PyPI lands.)
+All three are currently in sync at **`2.1.0`** (the v2.1.0-release step-2 bump
+that was initially skipped landed 2026-06-22).
 
 ## Git / change workflow
 
